@@ -4,6 +4,15 @@ import subprocess
 import shutil
 import asyncio
 import decky
+from functools import partial
+#fix for subprocess issue from Decky 3.1.1
+# Using partial to avoid changing lines several times
+
+# Define blank LD_LIBRARY_PATH
+custom_env = {"LD_LIBRARY_PATH": "", **os.environ}
+
+# Customized c_subprocess_run with custom env
+c_subprocess_run = partial(c_subprocess_run, env=custom_env)
 
 class Plugin:
     # State to track if WiFi is currently locked
@@ -23,7 +32,7 @@ class Plugin:
         
         try:
             decky.logger.info("Locking WiFi to current BSSID")
-            result = subprocess.run([self.lock_script_path], capture_output=True, text=True)
+            result = c_subprocess_run([self.lock_script_path], capture_output=True, text=True)
             decky.logger.info(f"Lock script exit code: {result.returncode}")
             decky.logger.info(f"Lock script stdout: {result.stdout}")
             
@@ -112,7 +121,7 @@ class Plugin:
         try:
             decky.logger.info(f"Unlocking WiFi from BSSID lock for SSID: {ssid_to_unlock}")
             # Pass the stored SSID to the script
-            result = subprocess.run([self.unlock_script_path, ssid_to_unlock], capture_output=True, text=True)
+            result = c_subprocess_run([self.unlock_script_path, ssid_to_unlock], capture_output=True, text=True)
             decky.logger.info(f"Unlock script exit code: {result.returncode}")
             decky.logger.info(f"Unlock script stdout: {result.stdout}")
             
@@ -228,7 +237,7 @@ class Plugin:
             unlock_attempted = True
             decky.logger.info(f"Attempting to run unlock script for SSID {ssid_to_unlock} before deleting state.")
             try:
-                result = subprocess.run([self.unlock_script_path, ssid_to_unlock], capture_output=True, text=True, timeout=10)
+                result = c_subprocess_run([self.unlock_script_path, ssid_to_unlock], capture_output=True, text=True, timeout=10)
                 decky.logger.info(f"Unlock script exit code during force delete: {result.returncode}")
                 decky.logger.info(f"Unlock script stdout during force delete: {result.stdout}")
                 if result.stderr:
